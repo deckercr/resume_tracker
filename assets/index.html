@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .view { display: none; }
+        .view.active { display: block; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#" onclick="showList()">Job Tracker</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="#" onclick="showList()">Home</a>
+                <a class="nav-link" href="#" onclick="showForm()">New Application</a>
+                <a class="nav-link" href="#" onclick="showResumes()">Resumes</a>
+                <a class="nav-link" href="#" onclick="exportExcel()">Export Excel</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="alert-container"></div>
+
+        <!-- LIST VIEW -->
+        <div id="view-list" class="view active">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Applications</h1>
+                <button class="btn btn-primary" onclick="showForm()">+ New Application</button>
+            </div>
+            <div class="mb-3 d-flex align-items-center gap-2">
+                <label for="status-filter" class="form-label mb-0">Filter by status:</label>
+                <select id="status-filter" class="form-select" style="width: auto;" onchange="showList()">
+                    <option value="">All</option>
+                    <option value="Applied">Applied</option>
+                    <option value="Screening">Screening</option>
+                    <option value="Interview">Interview</option>
+                    <option value="Offer">Offer</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Withdrawn">Withdrawn</option>
+                </select>
+            </div>
+            <div id="app-table-container"></div>
+        </div>
+
+        <!-- FORM VIEW -->
+        <div id="view-form" class="view">
+            <h1 id="form-title">New Application</h1>
+            <form id="app-form" class="mt-3" onsubmit="submitForm(event)">
+                <input type="hidden" id="form-id" value="">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="form-date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="form-date">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="form-status" class="form-label">Status</label>
+                        <select class="form-select" id="form-status">
+                            <option value="Applied">Applied</option>
+                            <option value="Screening">Screening</option>
+                            <option value="Interview">Interview</option>
+                            <option value="Offer">Offer</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Withdrawn">Withdrawn</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="form-salary" class="form-label">Salary</label>
+                        <input type="text" class="form-control" id="form-salary">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="form-company" class="form-label">Company *</label>
+                        <input type="text" class="form-control" id="form-company" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="form-position" class="form-label">Position *</label>
+                        <input type="text" class="form-control" id="form-position" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="form-location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="form-location">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="form-job-id" class="form-label">Job ID</label>
+                        <input type="text" class="form-control" id="form-job-id">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="form-url" class="form-label">URL</label>
+                    <input type="url" class="form-control" id="form-url">
+                </div>
+                <div class="mb-3">
+                    <label for="form-contact" class="form-label">Contact</label>
+                    <input type="text" class="form-control" id="form-contact">
+                </div>
+                <div class="mb-3">
+                    <label for="form-notes" class="form-label">Notes</label>
+                    <textarea class="form-control" id="form-notes" rows="3"></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" id="form-submit-btn">Add Application</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="cancelForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- DETAIL VIEW -->
+        <div id="view-detail" class="view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 id="detail-title"></h1>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary" id="detail-edit-btn">Edit</button>
+                    <button class="btn btn-outline-danger" id="detail-delete-btn">Delete</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <dl class="row mb-0" id="detail-fields"></dl>
+                </div>
+            </div>
+            <div class="mt-3 d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-primary" id="detail-jd-btn">Job Description</button>
+                <button class="btn btn-outline-info" id="detail-resume-btn">Resume</button>
+                <button class="btn btn-outline-secondary" onclick="showList()">Back to List</button>
+            </div>
+            <!-- Resume linking section -->
+            <div id="detail-resume-section" class="mt-3" style="display:none;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Linked Resume</h5>
+                        <p id="detail-resume-info"></p>
+                        <div id="detail-resume-actions"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JOB DESCRIPTION VIEW -->
+        <div id="view-jd" class="view">
+            <h1>Job Description</h1>
+            <p class="text-muted" id="jd-context"></p>
+            <form onsubmit="submitJd(event)">
+                <input type="hidden" id="jd-app-id" value="">
+                <div class="mb-3">
+                    <label for="jd-text" class="form-label">Description</label>
+                    <textarea class="form-control" id="jd-text" rows="15"></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-outline-secondary" id="jd-back-btn">Back</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- DELETE CONFIRMATION VIEW -->
+        <div id="view-delete" class="view">
+            <div class="card border-danger mt-4" style="max-width: 500px; margin: auto;">
+                <div class="card-body text-center">
+                    <h4 class="card-title text-danger">Confirm Delete</h4>
+                    <p id="delete-message"></p>
+                    <p class="text-muted small">This will also remove any linked job description.</p>
+                    <button class="btn btn-danger" id="delete-confirm-btn">Delete</button>
+                    <button class="btn btn-outline-secondary ms-2" id="delete-cancel-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESUMES LIBRARY VIEW -->
+        <div id="view-resumes" class="view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Resumes</h1>
+                <button class="btn btn-primary" onclick="showResumeUpload()">+ Upload Resume</button>
+            </div>
+            <div id="resume-table-container"></div>
+        </div>
+
+        <!-- RESUME UPLOAD VIEW -->
+        <div id="view-resume-upload" class="view">
+            <h1>Upload Resume</h1>
+            <form onsubmit="submitResumeUpload(event)" class="mt-3">
+                <div class="mb-3">
+                    <label for="resume-name" class="form-label">Resume Name *</label>
+                    <input type="text" class="form-control" id="resume-name" required
+                           placeholder="e.g. Senior Developer Resume">
+                </div>
+                <p class="text-muted">After clicking Upload, a file picker will open for you to select a PDF or DOCX file.</p>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="showResumes()">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- RESUME DETAIL VIEW -->
+        <div id="view-resume-detail" class="view">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 id="resume-detail-title"></h1>
+                <button class="btn btn-outline-danger" id="resume-delete-btn">Delete</button>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <dl class="row mb-0" id="resume-detail-fields"></dl>
+                </div>
+            </div>
+            <div class="mt-3 d-flex flex-wrap gap-2" id="resume-detail-actions"></div>
+            <div class="mt-3">
+                <button class="btn btn-outline-secondary" onclick="showResumes()">Back to Resumes</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const BADGE_COLORS = {
+            'Offer': 'bg-success',
+            'Rejected': 'bg-danger',
+            'Interview': 'bg-info',
+            'Screening': 'bg-warning text-dark',
+            'Withdrawn': 'bg-secondary',
+            'Applied': 'bg-primary'
+        };
+
+        let currentDetailId = null;
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+            setTimeout(() => { container.innerHTML = ''; }, 3000);
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        // ── LIST VIEW ──
+        async function showList() {
+            const filter = document.getElementById('status-filter').value;
+            const apps = await pywebview.api.get_applications(filter);
+            const container = document.getElementById('app-table-container');
+
+            if (apps.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted mt-5">
+                        <p>No applications yet.</p>
+                        <button class="btn btn-primary" onclick="showForm()">Add your first application</button>
+                    </div>`;
+            } else {
+                let rows = apps.map(a => {
+                    const badge = BADGE_COLORS[a.status] || 'bg-primary';
+                    return `<tr>
+                        <td>${escapeHtml(a.date)}</td>
+                        <td><span class="badge ${badge}">${escapeHtml(a.status)}</span></td>
+                        <td>${escapeHtml(a.company)}</td>
+                        <td>${escapeHtml(a.position)}</td>
+                        <td>${escapeHtml(a.location)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="showDetail(${a.id})">View</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="showEditForm(${a.id})">Edit</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="showDeleteConfirm(${a.id})">Delete</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+
+                container.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr><th>Date</th><th>Status</th><th>Company</th><th>Position</th><th>Location</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>`;
+            }
+            switchView('view-list');
+        }
+
+        // ── FORM VIEW ──
+        function showForm() {
+            document.getElementById('form-id').value = '';
+            document.getElementById('form-title').textContent = 'New Application';
+            document.getElementById('form-submit-btn').textContent = 'Add Application';
+            document.getElementById('form-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('form-status').value = 'Applied';
+            document.getElementById('form-company').value = '';
+            document.getElementById('form-position').value = '';
+            document.getElementById('form-location').value = '';
+            document.getElementById('form-job-id').value = '';
+            document.getElementById('form-salary').value = '';
+            document.getElementById('form-url').value = '';
+            document.getElementById('form-contact').value = '';
+            document.getElementById('form-notes').value = '';
+            switchView('view-form');
+        }
+
+        async function showEditForm(id) {
+            const app = await pywebview.api.get_application(id);
+            document.getElementById('form-id').value = app.id;
+            document.getElementById('form-title').textContent = 'Edit Application';
+            document.getElementById('form-submit-btn').textContent = 'Save Changes';
+            document.getElementById('form-date').value = app.date || '';
+            document.getElementById('form-status').value = app.status;
+            document.getElementById('form-company').value = app.company;
+            document.getElementById('form-position').value = app.position;
+            document.getElementById('form-location').value = app.location || '';
+            document.getElementById('form-job-id').value = app.job_id || '';
+            document.getElementById('form-salary').value = app.salary || '';
+            document.getElementById('form-url').value = app.url || '';
+            document.getElementById('form-contact').value = app.contact || '';
+            document.getElementById('form-notes').value = app.notes || '';
+            switchView('view-form');
+        }
+
+        async function submitForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('form-id').value;
+            const data = {
+                date: document.getElementById('form-date').value,
+                status: document.getElementById('form-status').value,
+                company: document.getElementById('form-company').value.trim(),
+                position: document.getElementById('form-position').value.trim(),
+                location: document.getElementById('form-location').value.trim(),
+                job_id: document.getElementById('form-job-id').value.trim(),
+                salary: document.getElementById('form-salary').value.trim(),
+                url: document.getElementById('form-url').value.trim(),
+                contact: document.getElementById('form-contact').value.trim(),
+                notes: document.getElementById('form-notes').value.trim(),
+            };
+
+            if (id) {
+                await pywebview.api.update_application(parseInt(id), data);
+                showAlert('Application updated.', 'success');
+                showDetail(parseInt(id));
+            } else {
+                await pywebview.api.create_application(data);
+                showAlert('Application added.', 'success');
+                showList();
+            }
+        }
+
+        function cancelForm() {
+            const id = document.getElementById('form-id').value;
+            if (id) {
+                showDetail(parseInt(id));
+            } else {
+                showList();
+            }
+        }
+
+        // ── DETAIL VIEW ──
+        async function showDetail(id) {
+            const app = await pywebview.api.get_application(id);
+            currentDetailId = id;
+            document.getElementById('detail-title').textContent = `${app.position} at ${app.company}`;
+
+            const fields = [
+                ['Date', app.date || 'N/A'],
+                ['Status', app.status],
+                ['Company', app.company],
+                ['Position', app.position],
+                ['Location', app.location || 'N/A'],
+                ['URL', app.url ? `<a href="#" onclick="pywebview.api.open_url('${escapeHtml(app.url)}')">${escapeHtml(app.url)}</a>` : 'N/A'],
+                ['Job ID', app.job_id || 'N/A'],
+                ['Salary', app.salary || 'N/A'],
+                ['Contact', app.contact || 'N/A'],
+                ['Notes', app.notes || 'N/A'],
+            ];
+
+            document.getElementById('detail-fields').innerHTML = fields.map(([label, val]) =>
+                `<dt class="col-sm-3">${label}</dt><dd class="col-sm-9">${val}</dd>`
+            ).join('');
+
+            // Job description button
+            const jdBtn = document.getElementById('detail-jd-btn');
+            jdBtn.innerHTML = 'Job Description' + (app.has_description ? ' <span class="badge bg-success ms-1">Added</span>' : '');
+            jdBtn.onclick = () => showJd(id);
+
+            // Resume button
+            const resumeBtn = document.getElementById('detail-resume-btn');
+            resumeBtn.innerHTML = 'Resume' + (app.resume_name ? ` <span class="badge bg-success ms-1">${escapeHtml(app.resume_name)}</span>` : '');
+            resumeBtn.onclick = () => toggleResumeSection(id, app);
+
+            document.getElementById('detail-edit-btn').onclick = () => showEditForm(id);
+            document.getElementById('detail-delete-btn').onclick = () => showDeleteConfirm(id);
+
+            // Hide resume section by default
+            document.getElementById('detail-resume-section').style.display = 'none';
+
+            switchView('view-detail');
+        }
+
+        async function toggleResumeSection(appId, app) {
+            const section = document.getElementById('detail-resume-section');
+            if (section.style.display !== 'none') {
+                section.style.display = 'none';
+                return;
+            }
+
+            const info = document.getElementById('detail-resume-info');
+            const actions = document.getElementById('detail-resume-actions');
+
+            if (app.resume_id) {
+                info.innerHTML = `Linked: <strong>${escapeHtml(app.resume_name)}</strong>`;
+                actions.innerHTML = `
+                    <button class="btn btn-sm btn-outline-primary" onclick="changeResumeLink(${appId})">Change</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="unlinkResume(${appId})">Unlink</button>`;
+            } else {
+                info.textContent = 'No resume linked.';
+                const resumes = await pywebview.api.get_resumes();
+                if (resumes.length === 0) {
+                    actions.innerHTML = `<p class="text-muted">No resumes uploaded yet. <a href="#" onclick="showResumes()">Go to Resumes</a> to upload one.</p>`;
+                } else {
+                    let options = resumes.map(r => `<option value="${r.id}">${escapeHtml(r.name)}</option>`).join('');
+                    actions.innerHTML = `
+                        <div class="d-flex gap-2 align-items-center">
+                            <select class="form-select form-select-sm" style="width: auto;" id="resume-link-select">${options}</select>
+                            <button class="btn btn-sm btn-primary" onclick="linkResume(${appId})">Link</button>
+                        </div>`;
+                }
+            }
+            section.style.display = 'block';
+        }
+
+        async function linkResume(appId) {
+            const resumeId = parseInt(document.getElementById('resume-link-select').value);
+            await pywebview.api.link_resume(appId, resumeId);
+            showAlert('Resume linked.', 'success');
+            showDetail(appId);
+        }
+
+        async function changeResumeLink(appId) {
+            const resumes = await pywebview.api.get_resumes();
+            const actions = document.getElementById('detail-resume-actions');
+            let options = resumes.map(r => `<option value="${r.id}">${escapeHtml(r.name)}</option>`).join('');
+            actions.innerHTML = `
+                <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select form-select-sm" style="width: auto;" id="resume-link-select">${options}</select>
+                    <button class="btn btn-sm btn-primary" onclick="linkResume(${appId})">Link</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="showDetail(${appId})">Cancel</button>
+                </div>`;
+        }
+
+        async function unlinkResume(appId) {
+            await pywebview.api.unlink_resume(appId);
+            showAlert('Resume unlinked.', 'success');
+            showDetail(appId);
+        }
+
+        // ── JOB DESCRIPTION VIEW ──
+        async function showJd(appId) {
+            const app = await pywebview.api.get_application(appId);
+            const jd = await pywebview.api.get_job_description(appId);
+            document.getElementById('jd-app-id').value = appId;
+            document.getElementById('jd-context').textContent = `${app.company} — ${app.position}`;
+            document.getElementById('jd-text').value = jd ? jd.description : '';
+            document.getElementById('jd-back-btn').onclick = () => showDetail(appId);
+            switchView('view-jd');
+        }
+
+        async function submitJd(e) {
+            e.preventDefault();
+            const appId = parseInt(document.getElementById('jd-app-id').value);
+            const desc = document.getElementById('jd-text').value.trim();
+            await pywebview.api.save_job_description(appId, desc);
+            showAlert('Job description saved.', 'success');
+            showDetail(appId);
+        }
+
+        // ── DELETE CONFIRMATION ──
+        async function showDeleteConfirm(id) {
+            const app = await pywebview.api.get_application(id);
+            document.getElementById('delete-message').innerHTML =
+                `Are you sure you want to delete the application for <strong>${escapeHtml(app.position)}</strong> at <strong>${escapeHtml(app.company)}</strong>?`;
+            document.getElementById('delete-confirm-btn').onclick = async () => {
+                await pywebview.api.delete_application(id);
+                showAlert('Application deleted.', 'success');
+                showList();
+            };
+            document.getElementById('delete-cancel-btn').onclick = () => showDetail(id);
+            switchView('view-delete');
+        }
+
+        // ── RESUMES LIBRARY ──
+        async function showResumes() {
+            const resumes = await pywebview.api.get_resumes();
+            const container = document.getElementById('resume-table-container');
+
+            if (resumes.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted mt-5">
+                        <p>No resumes uploaded yet.</p>
+                        <button class="btn btn-primary" onclick="showResumeUpload()">Upload your first resume</button>
+                    </div>`;
+            } else {
+                let rows = resumes.map(r => {
+                    let fileButtons = '';
+                    if (r.has_pdf) {
+                        fileButtons += `<button class="btn btn-sm btn-danger" onclick="viewResumeFile(${r.id}, 'pdf')">PDF</button> `;
+                    } else {
+                        fileButtons += `<button class="btn btn-sm btn-outline-danger" onclick="convertResume(${r.id}, 'pdf')">Convert to PDF</button> `;
+                    }
+                    if (r.has_docx) {
+                        fileButtons += `<button class="btn btn-sm btn-primary" onclick="viewResumeFile(${r.id}, 'docx')">DOCX</button> `;
+                    } else {
+                        fileButtons += `<button class="btn btn-sm btn-outline-primary" onclick="convertResume(${r.id}, 'docx')">Convert to DOCX</button> `;
+                    }
+
+                    return `<tr>
+                        <td>${escapeHtml(r.name)}</td>
+                        <td><span class="badge bg-secondary">${escapeHtml(r.original_format.toUpperCase())}</span></td>
+                        <td>${r.app_count}</td>
+                        <td>${escapeHtml(r.created_at)}</td>
+                        <td>
+                            ${fileButtons}
+                            <button class="btn btn-sm btn-outline-info" onclick="showResumeDetail(${r.id})">Details</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteResume(${r.id})">Delete</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+
+                container.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr><th>Name</th><th>Format</th><th>Linked Apps</th><th>Uploaded</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>`;
+            }
+            switchView('view-resumes');
+        }
+
+        function showResumeUpload() {
+            document.getElementById('resume-name').value = '';
+            switchView('view-resume-upload');
+        }
+
+        async function submitResumeUpload(e) {
+            e.preventDefault();
+            const name = document.getElementById('resume-name').value.trim();
+            const result = await pywebview.api.upload_resume(name);
+            if (result) {
+                showAlert('Resume uploaded.', 'success');
+                showResumes();
+            } else {
+                showAlert('Upload cancelled or invalid file.', 'warning');
+            }
+        }
+
+        async function viewResumeFile(id, fmt) {
+            const ok = await pywebview.api.view_resume_file(id, fmt);
+            if (!ok) {
+                showAlert('File not available.', 'warning');
+            }
+        }
+
+        async function convertResume(id, targetFmt) {
+            let result;
+            if (targetFmt === 'pdf') {
+                result = await pywebview.api.convert_to_pdf(id);
+            } else {
+                result = await pywebview.api.convert_to_docx(id);
+            }
+            if (result && result.ok) {
+                showAlert(`Converted to ${targetFmt.toUpperCase()}.`, 'success');
+                showResumes();
+            } else {
+                const err = (result && result.error) ? result.error : 'Unknown error';
+                showAlert('Conversion failed: ' + escapeHtml(err), 'danger');
+            }
+        }
+
+        async function deleteResume(id) {
+            if (!confirm('Delete this resume? It will be unlinked from all applications.')) return;
+            await pywebview.api.delete_resume(id);
+            showAlert('Resume deleted.', 'success');
+            showResumes();
+        }
+
+        async function showResumeDetail(id) {
+            const r = await pywebview.api.get_resume(id);
+            if (!r) return;
+
+            document.getElementById('resume-detail-title').textContent = r.name;
+
+            const fields = [
+                ['Original Format', r.original_format.toUpperCase()],
+                ['Has PDF', r.has_pdf ? 'Yes' : 'No'],
+                ['Has DOCX', r.has_docx ? 'Yes' : 'No'],
+                ['Uploaded', r.created_at],
+                ['Linked Applications', r.linked_apps.length > 0
+                    ? r.linked_apps.map(a => `${escapeHtml(a.position)} at ${escapeHtml(a.company)}`).join(', ')
+                    : 'None'],
+            ];
+
+            document.getElementById('resume-detail-fields').innerHTML = fields.map(([label, val]) =>
+                `<dt class="col-sm-3">${label}</dt><dd class="col-sm-9">${val}</dd>`
+            ).join('');
+
+            let actionBtns = '';
+            if (r.has_pdf) {
+                actionBtns += `<button class="btn btn-danger" onclick="viewResumeFile(${r.id}, 'pdf')">View PDF</button> `;
+            } else {
+                actionBtns += `<button class="btn btn-outline-danger" onclick="convertAndRefresh(${r.id}, 'pdf')">Convert to PDF</button> `;
+            }
+            if (r.has_docx) {
+                actionBtns += `<button class="btn btn-primary" onclick="viewResumeFile(${r.id}, 'docx')">View DOCX</button> `;
+            } else {
+                actionBtns += `<button class="btn btn-outline-primary" onclick="convertAndRefresh(${r.id}, 'docx')">Convert to DOCX</button> `;
+            }
+
+            document.getElementById('resume-detail-actions').innerHTML = actionBtns;
+
+            document.getElementById('resume-delete-btn').onclick = async () => {
+                if (!confirm('Delete this resume?')) return;
+                await pywebview.api.delete_resume(id);
+                showAlert('Resume deleted.', 'success');
+                showResumes();
+            };
+
+            switchView('view-resume-detail');
+        }
+
+        async function convertAndRefresh(id, targetFmt) {
+            let result;
+            if (targetFmt === 'pdf') {
+                result = await pywebview.api.convert_to_pdf(id);
+            } else {
+                result = await pywebview.api.convert_to_docx(id);
+            }
+            if (result && result.ok) {
+                showAlert(`Converted to ${targetFmt.toUpperCase()}.`, 'success');
+                showResumeDetail(id);
+            } else {
+                const err = (result && result.error) ? result.error : 'Unknown error';
+                showAlert('Conversion failed: ' + escapeHtml(err), 'danger');
+            }
+        }
+
+        // ── EXPORT ──
+        async function exportExcel() {
+            const result = await pywebview.api.export_excel();
+            if (result) {
+                showAlert('Exported to ' + escapeHtml(result), 'success');
+            }
+        }
+
+        // Init: wait for pywebview API to be ready
+        window.addEventListener('pywebviewready', () => {
+            showList();
+        });
+    </script>
+</body>
+</html>
